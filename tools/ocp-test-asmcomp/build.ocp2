@@ -1,0 +1,6 @@
+
+begin
+  ocaml.files = [ "testgen.ml" ];
+  ocaml.requires = [ "ocplib-compat" ];
+  OCaml.program("ocp-test-asmcomp", ocaml);
+end

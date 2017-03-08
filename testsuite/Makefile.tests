@@ -1,0 +1,18 @@
+RESULT ?= result
+OCAMLOPT ?= ocamlopt
+CMP ?= cmp
+
+all: results
+update-references:
+	$(MAKE) -f Makefile.tests RESULT=reference
+clean:
+	rm -f *.asm *.cm? *.o *.result
+results:
+	@echo Compiling test_0:
+	@rm -f test_0.asm test_0.cm? test_0.o
+	@$(OCAMLOPT) -g -c test_0.mli
+	@$(OCAMLOPT) -g -c test_0.ml
+	@$(OCAMLOPT) -g -o test_0.asm test_0.cmx
+	@echo Executing test_0:
+	@./test_0.asm > test_0.$(RESULT) || echo execution failed
+	@if cmp test_0.$(RESULT) test_0.reference; then echo TEST test_0 passed; else echo TEST test_0 failed; fi
