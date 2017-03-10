@@ -1,12 +1,26 @@
-TEST_ASMCOMP=ocp-test-asmcomp
+TEST_ASMCOMP=ocp-test-asm
+
+MAKEREC=$(MAKE) -f Makefile.tests --no-print-directory
 
 tests:
-	$(MAKE) -f Makefile.tests
+	$(MAKEREC)
 
 update-references:
 	../_obuild/$(TEST_ASMCOMP)/$(TEST_ASMCOMP).asm
-	$(MAKE) -f Makefile.tests update-references
+	$(MAKEREC) update-references
 
 clean:
-	$(MAKE) -f Makefile.tests clean
+	$(MAKEREC) clean
 	rm -f *~
+
+siteox:
+	rm -f *.cm? *.asm *.o *.log *~ *.s
+	rsync -auv --rsync-path=/usr/local/bin/rsync \
+		. siteox:opt/ocaml-4.03.0/ocp-testsuite
+
+.SUFFIXES: .ml .cmm .log
+
+.ml.cmm:
+	$(MAKEREC) $*.cmm
+.ml.log:
+	$(MAKEREC) $*.log

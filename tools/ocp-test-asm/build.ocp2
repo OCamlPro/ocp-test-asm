@@ -1,0 +1,12 @@
+
+begin
+  ocaml.files = [
+    "testTypes.ml";
+    "testExternals.ml";
+    "testPrinter.ml";
+    "testTests.ml";
+    "testMain.ml";
+  ];
+  ocaml.requires = [ "ocplib-compat" ];
+  OCaml.program("ocp-test-asm", ocaml);
+end

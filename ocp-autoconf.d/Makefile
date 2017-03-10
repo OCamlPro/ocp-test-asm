@@ -6,5 +6,10 @@ testsuite:
 	../_obuild/$(TEST_ASMCOMP)/$(TEST_ASMCOMP).asm; \
 	$(MAKE) -f Makefile.tests update-references
 
-clean::
+PROJECT_CLEAN=testsuite-clean
+
+testsuite.clean:
 	$(MAKE) -C testsuite clean
+
+c-equivalent.clean:
+	$(MAKE) -C c-equivalent clean

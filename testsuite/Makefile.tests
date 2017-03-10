@@ -1,18 +1,241 @@
+# Use 'Makefile.config' to configure for your host
+-include Makefile.config
 RESULT ?= result
 OCAMLOPT ?= ocamlopt
+ASMCOMP ?= -S -verbose -g -nostdlib -nopervasives
+ASMLINK ?= -S -verbose -g
+#CMP could also be 'diff -q'
 CMP ?= cmp
-
-all: results
+ECHO_NONL ?= echo -n
+NONL ?=
+ASMDUMP := -S -dcmm -dsel -dcombine -dlive -dspill -dinterf -dprefer -dalloc -dreload -dscheduling -dlinear
+all:
+	$(MAKE) -f Makefile.tests --no-print-directory clean
+	$(MAKE) -f Makefile.tests --no-print-directory std_exit
+	$(MAKE) -f Makefile.tests --no-print-directory results
 update-references:
 	$(MAKE) -f Makefile.tests RESULT=reference
 clean:
-	rm -f *.asm *.cm? *.o *.result
-results:
-	@echo Compiling test_0:
-	@rm -f test_0.asm test_0.cm? test_0.o
-	@$(OCAMLOPT) -g -c test_0.mli
-	@$(OCAMLOPT) -g -c test_0.ml
-	@$(OCAMLOPT) -g -o test_0.asm test_0.cmx
-	@echo Executing test_0:
-	@./test_0.asm > test_0.$(RESULT) || echo execution failed
-	@if cmp test_0.$(RESULT) test_0.reference; then echo TEST test_0 passed; else echo TEST test_0 failed; fi
+	rm -f *.asm *.cm? *.o *.result *.log *.s
+std_exit:
+	@echo > std_exit.ml
+	$(OCAMLOPT) -S -c std_exit.ml
+test_1.log: test_1.ml
+	@echo 'make -f Makefile.tests test_1 > test_1.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_1 > test_1.log 2>&1 || echo FAILED TEST test_1 print_char '(by error status: cat test_1.log)'>> test_1.log
+test_1.cmm: test_1.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_1.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_1.ml 2> test_1.cmm
+	cat test_1.s >> test_1.cmm
+test_1:
+	@echo Test print_char = test_1
+	@echo Compiling test_1:
+	rm -f test_1.asm test_1.cm? test_1.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_1.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_1.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_1.asm test_1.cmx
+	@echo Executing test_1:
+	echo './test_1.asm > test_1.$(RESULT)'
+	@./test_1.asm > test_1.$(RESULT) || echo execution failed
+	@if $(CMP) test_1.$(RESULT) test_1.reference; then echo PASSED TEST test_1 print_char; else echo FAILED TEST test_1 print_char '(by diff, cat test_1.log)'; fi
+test_2.log: test_2.ml
+	@echo 'make -f Makefile.tests test_2 > test_2.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_2 > test_2.log 2>&1 || echo FAILED TEST test_2 all externals '(by error status: cat test_2.log)'>> test_2.log
+test_2.cmm: test_2.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_2.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_2.ml 2> test_2.cmm
+	cat test_2.s >> test_2.cmm
+test_2:
+	@echo Test all externals = test_2
+	@echo Compiling test_2:
+	rm -f test_2.asm test_2.cm? test_2.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_2.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_2.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_2.asm test_2.cmx
+	@echo Executing test_2:
+	echo './test_2.asm > test_2.$(RESULT)'
+	@./test_2.asm > test_2.$(RESULT) || echo execution failed
+	@if $(CMP) test_2.$(RESULT) test_2.reference; then echo PASSED TEST test_2 all externals; else echo FAILED TEST test_2 all externals '(by diff, cat test_2.log)'; fi
+test_3.log: test_3.ml
+	@echo 'make -f Makefile.tests test_3 > test_3.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_3 > test_3.log 2>&1 || echo FAILED TEST test_3 exit 2 '(by error status: cat test_3.log)'>> test_3.log
+test_3.cmm: test_3.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_3.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_3.ml 2> test_3.cmm
+	cat test_3.s >> test_3.cmm
+test_3:
+	@echo Test exit 2 = test_3
+	@echo Compiling test_3:
+	rm -f test_3.asm test_3.cm? test_3.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_3.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_3.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_3.asm test_3.cmx
+	@echo Executing test_3:
+	echo './test_3.asm > test_3.$(RESULT)'
+	@./test_3.asm > test_3.$(RESULT) || echo execution failed
+	@if $(CMP) test_3.$(RESULT) test_3.reference; then echo PASSED TEST test_3 exit 2; else echo FAILED TEST test_3 exit 2 '(by diff, cat test_3.log)'; fi
+test_4.log: test_4.ml
+	@echo 'make -f Makefile.tests test_4 > test_4.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_4 > test_4.log 2>&1 || echo FAILED TEST test_4 compare_float_array_22 '(by error status: cat test_4.log)'>> test_4.log
+test_4.cmm: test_4.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_4.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_4.ml 2> test_4.cmm
+	cat test_4.s >> test_4.cmm
+test_4:
+	@echo Test compare_float_array_22 = test_4
+	@echo Compiling test_4:
+	rm -f test_4.asm test_4.cm? test_4.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_4.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_4.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_4.asm test_4.cmx
+	@echo Executing test_4:
+	echo './test_4.asm > test_4.$(RESULT)'
+	@./test_4.asm > test_4.$(RESULT) || echo execution failed
+	@if $(CMP) test_4.$(RESULT) test_4.reference; then echo PASSED TEST test_4 compare_float_array_22; else echo FAILED TEST test_4 compare_float_array_22 '(by diff, cat test_4.log)'; fi
+test_5.log: test_5.ml
+	@echo 'make -f Makefile.tests test_5 > test_5.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_5 > test_5.log 2>&1 || echo FAILED TEST test_5 print_array_array_22 '(by error status: cat test_5.log)'>> test_5.log
+test_5.cmm: test_5.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_5.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_5.ml 2> test_5.cmm
+	cat test_5.s >> test_5.cmm
+test_5:
+	@echo Test print_array_array_22 = test_5
+	@echo Compiling test_5:
+	rm -f test_5.asm test_5.cm? test_5.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_5.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_5.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_5.asm test_5.cmx
+	@echo Executing test_5:
+	echo './test_5.asm > test_5.$(RESULT)'
+	@./test_5.asm > test_5.$(RESULT) || echo execution failed
+	@if $(CMP) test_5.$(RESULT) test_5.reference; then echo PASSED TEST test_5 print_array_array_22; else echo FAILED TEST test_5 print_array_array_22 '(by diff, cat test_5.log)'; fi
+test_6.log: test_6.ml
+	@echo 'make -f Makefile.tests test_6 > test_6.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_6 > test_6.log 2>&1 || echo FAILED TEST test_6 compare_float_lt '(by error status: cat test_6.log)'>> test_6.log
+test_6.cmm: test_6.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_6.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_6.ml 2> test_6.cmm
+	cat test_6.s >> test_6.cmm
+test_6:
+	@echo Test compare_float_lt = test_6
+	@echo Compiling test_6:
+	rm -f test_6.asm test_6.cm? test_6.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_6.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_6.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_6.asm test_6.cmx
+	@echo Executing test_6:
+	echo './test_6.asm > test_6.$(RESULT)'
+	@./test_6.asm > test_6.$(RESULT) || echo execution failed
+	@if $(CMP) test_6.$(RESULT) test_6.reference; then echo PASSED TEST test_6 compare_float_lt; else echo FAILED TEST test_6 compare_float_lt '(by diff, cat test_6.log)'; fi
+test_7.log: test_7.ml
+	@echo 'make -f Makefile.tests test_7 > test_7.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_7 > test_7.log 2>&1 || echo FAILED TEST test_7 compare_float_array_lt '(by error status: cat test_7.log)'>> test_7.log
+test_7.cmm: test_7.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_7.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_7.ml 2> test_7.cmm
+	cat test_7.s >> test_7.cmm
+test_7:
+	@echo Test compare_float_array_lt = test_7
+	@echo Compiling test_7:
+	rm -f test_7.asm test_7.cm? test_7.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_7.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_7.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_7.asm test_7.cmx
+	@echo Executing test_7:
+	echo './test_7.asm > test_7.$(RESULT)'
+	@./test_7.asm > test_7.$(RESULT) || echo execution failed
+	@if $(CMP) test_7.$(RESULT) test_7.reference; then echo PASSED TEST test_7 compare_float_array_lt; else echo FAILED TEST test_7 compare_float_array_lt '(by diff, cat test_7.log)'; fi
+test_8.log: test_8.ml
+	@echo 'make -f Makefile.tests test_8 > test_8.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_8 > test_8.log 2>&1 || echo FAILED TEST test_8 compare_unsafe_float_array_lt '(by error status: cat test_8.log)'>> test_8.log
+test_8.cmm: test_8.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_8.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_8.ml 2> test_8.cmm
+	cat test_8.s >> test_8.cmm
+test_8:
+	@echo Test compare_unsafe_float_array_lt = test_8
+	@echo Compiling test_8:
+	rm -f test_8.asm test_8.cm? test_8.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_8.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_8.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_8.asm test_8.cmx
+	@echo Executing test_8:
+	echo './test_8.asm > test_8.$(RESULT)'
+	@./test_8.asm > test_8.$(RESULT) || echo execution failed
+	@if $(CMP) test_8.$(RESULT) test_8.reference; then echo PASSED TEST test_8 compare_unsafe_float_array_lt; else echo FAILED TEST test_8 compare_unsafe_float_array_lt '(by diff, cat test_8.log)'; fi
+test_9.log: test_9.ml
+	@echo 'make -f Makefile.tests test_9 > test_9.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_9 > test_9.log 2>&1 || echo FAILED TEST test_9 float_compare '(by error status: cat test_9.log)'>> test_9.log
+test_9.cmm: test_9.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_9.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_9.ml 2> test_9.cmm
+	cat test_9.s >> test_9.cmm
+test_9:
+	@echo Test float_compare = test_9
+	@echo Compiling test_9:
+	rm -f test_9.asm test_9.cm? test_9.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_9.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_9.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_9.asm test_9.cmx
+	@echo Executing test_9:
+	echo './test_9.asm > test_9.$(RESULT)'
+	@./test_9.asm > test_9.$(RESULT) || echo execution failed
+	@if $(CMP) test_9.$(RESULT) test_9.reference; then echo PASSED TEST test_9 float_compare; else echo FAILED TEST test_9 float_compare '(by diff, cat test_9.log)'; fi
+test_10.log: test_10.ml
+	@echo 'make -f Makefile.tests test_10 > test_10.log'
+	@$(MAKE) -f Makefile.tests --no-print-directory test_10 > test_10.log 2>&1 || echo FAILED TEST test_10 float_compare_alloc '(by error status: cat test_10.log)'>> test_10.log
+test_10.cmm: test_10.ml
+	$(OCAMLOPT) $(ASMCOMP) -c test_10.mli
+	$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c test_10.ml 2> test_10.cmm
+	cat test_10.s >> test_10.cmm
+test_10:
+	@echo Test float_compare_alloc = test_10
+	@echo Compiling test_10:
+	rm -f test_10.asm test_10.cm? test_10.o
+	$(OCAMLOPT) $(ASMCOMP) -c test_10.mli
+	$(OCAMLOPT) $(ASMCOMP) -c test_10.ml
+	$(OCAMLOPT) $(ASMLINK) -o test_10.asm test_10.cmx
+	@echo Executing test_10:
+	echo './test_10.asm > test_10.$(RESULT)'
+	@./test_10.asm > test_10.$(RESULT) || echo execution failed
+	@if $(CMP) test_10.$(RESULT) test_10.reference; then echo PASSED TEST test_10 float_compare_alloc; else echo FAILED TEST test_10 float_compare_alloc '(by diff, cat test_10.log)'; fi
+.PHONY: test_1.log test_2.log test_3.log test_4.log test_5.log test_6.log test_7.log test_8.log test_9.log test_10.log
+results: test_1.log test_2.log test_3.log test_4.log test_5.log test_6.log test_7.log test_8.log test_9.log test_10.log
+	@echo Compiling restuls in testsuite.log...
+	@echo Testsuite results > testsuite.log
+	@echo '--------------------- test_1.log --------------------' >> testsuite.log
+	@cat test_1.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_2.log --------------------' >> testsuite.log
+	@cat test_2.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_3.log --------------------' >> testsuite.log
+	@cat test_3.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_4.log --------------------' >> testsuite.log
+	@cat test_4.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_5.log --------------------' >> testsuite.log
+	@cat test_5.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_6.log --------------------' >> testsuite.log
+	@cat test_6.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_7.log --------------------' >> testsuite.log
+	@cat test_7.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_8.log --------------------' >> testsuite.log
+	@cat test_8.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_9.log --------------------' >> testsuite.log
+	@cat test_9.log >> testsuite.log
+	@echo >> testsuite.log
+	@echo '--------------------- test_10.log --------------------' >> testsuite.log
+	@cat test_10.log >> testsuite.log
+	@echo >> testsuite.log
+	@grep TEST testsuite.log
+	@$(ECHO_NONL) 'Tests OK (on 10 tests): '$(NONL)
+	@grep 'PASSED TEST' testsuite.log | wc -l
+	@$(ECHO_NONL) 'Tests KO (on 10 tests): '$(NONL)
+	@grep 'FAILED TEST' testsuite.log | wc -l
