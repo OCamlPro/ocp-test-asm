@@ -1,1 +1,1 @@
-val print_tests : TestTypes.test list -> unit
+val print_tests : TestTypes.test list * TestTypes.subset list -> unit

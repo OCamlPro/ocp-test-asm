@@ -169,6 +169,12 @@ let prim_externals = [
   "array_unsafe_set", "'a array -> int -> 'a -> unit", ["%array_unsafe_set"];
   "array_make", "int -> 'a -> 'a array", ["caml_make_vect"];
   "array_create", "int -> 'a -> 'a array", ["caml_make_vect"];
+  "array_unsafe_sub", "'a array -> int -> int -> 'a array",
+                   ["caml_array_sub"];
+  "array_append", "'a array -> 'a array -> 'a array", ["caml_array_append"];
+  "array_concat", "'a array list -> 'a array", [ "caml_array_concat" ];
+  "array_unsafe_blit", "'a array -> int -> 'a array -> int -> int -> unit",
+                   ["caml_array_blit"];
 
     "string_length", "string -> int", ["%string_length"];
   "string_create", "int -> string", ["caml_create_string"];
@@ -183,6 +189,18 @@ let prim_externals = [
 
   "float_compare", "float -> float -> int", [ "caml_float_compare"; "noalloc" ];
   "float_compare_alloc", "float -> float -> int", [ "caml_float_compare" ];
+
+  "gc_stat", "unit -> stat", ["caml_gc_stat"];
+  "gc_quick_stat", "unit -> stat", ["caml_gc_quick_stat"];
+  "gc_counters", "unit -> (float * float * float)", ["caml_gc_counters"];
+  "gc_get", "unit -> control", ["caml_gc_get"];
+  "gc_set", "control -> unit", ["caml_gc_set"];
+  "gc_minor", "unit -> unit", ["caml_gc_minor"];
+  "gc_major_slice", "int -> int", ["caml_gc_major_slice"];
+  "gc_major", "unit -> unit", ["caml_gc_major"];
+  "gc_full_major", "unit -> unit", ["caml_gc_full_major"];
+  "gc_compact", "unit -> unit", ["caml_gc_compaction"];
+
 
 ]
 

@@ -3,6 +3,8 @@ open StringCompat
 
 open TestTypes
 
+let makefile_trailer = List.assoc "files/Makefile.trailer" TestFiles.files
+
 let makefile = "Makefile.tests"
 let make_rec =
   Printf.sprintf "$(MAKE) -f %s --no-print-directory" makefile
@@ -42,11 +44,19 @@ let test_counter = ref 0
 let print_test make_oc test =
   incr test_counter;
   let i = !test_counter in
-  let basename = Printf.sprintf "test_%d" i in
+  let basename = Printf.sprintf "test%d" i in
 
   (* empty .mli since no external should be created *)
   let mli_oc = open_out (basename ^ ".mli") in
   close_out mli_oc;
+
+  let name_oc = open_out (basename ^ ".name") in
+  begin
+    match test.subset with
+    | None -> Printf.fprintf name_oc "%s\n" test.name;
+    | Some sub -> Printf.fprintf name_oc "%s:%s\n" sub.subset_name test.name;
+  end;
+  close_out name_oc;
 
   let ml_oc = open_out (basename ^ ".ml") in
   Printf.fprintf ml_oc "(* %s *)\n" test.name;
@@ -55,9 +65,9 @@ let print_test make_oc test =
   let externals =
     if test.externals = [] then
       externals_of_source test.source
-        (*
-    StringMap.iter (TestExternals.print_external ml_oc)
-          !TestExternals.externals_map *)
+    (*
+      StringMap.iter (TestExternals.print_external ml_oc)
+      !TestExternals.externals_map *)
     else test.externals
   in
   List.iter (fun ex_name ->
@@ -72,39 +82,18 @@ let print_test make_oc test =
   ) externals;
   output_string ml_oc test.source;
   close_out ml_oc;
+  let test_log = Printf.sprintf "%s.log" basename in
+  begin
+    match test.subset with
+    | None -> ()
+    | Some sub -> sub.subset_logs <- test_log :: sub.subset_logs
+  end;
+  test_log
 
-  Printf.fprintf make_oc "%s.log: %s.ml\n" basename basename;
-  Printf.fprintf make_oc "\t@echo 'make -f %s %s > %s.log'\n" makefile basename basename;
-  Printf.fprintf make_oc "\t@%s %s > %s.log 2>&1 || echo FAILED TEST %s %s '(by error status: cat %s.log)'>> %s.log\n"
-    make_rec basename basename
-  basename test.name basename basename;
-  Printf.fprintf make_oc "%s.cmm: %s.ml\n" basename basename;
-  Printf.fprintf make_oc "\t$(OCAMLOPT) $(ASMCOMP) -c %s.mli\n" basename;
-  Printf.fprintf make_oc "\t$(OCAMLOPT) $(ASMCOMP) $(ASMDUMP) -c %s.ml 2> %s.cmm\n" basename basename;
-  Printf.fprintf make_oc "\tcat %s.s >> %s.cmm\n" basename basename;
-  Printf.fprintf make_oc "%s:\n" basename;
-  Printf.fprintf make_oc "\t@echo Test %s = %s\n" test.name basename;
-  Printf.fprintf make_oc "\t@echo Compiling %s:\n" basename;
-  Printf.fprintf make_oc "\trm -f %s.asm %s.cm? %s.o\n"
-    basename basename basename;
-  Printf.fprintf make_oc "\t$(OCAMLOPT) $(ASMCOMP) -c %s.mli\n" basename;
-  Printf.fprintf make_oc "\t$(OCAMLOPT) $(ASMCOMP) -c %s.ml\n" basename;
-  Printf.fprintf make_oc "\t$(OCAMLOPT) $(ASMLINK) -o %s.asm %s.cmx\n"
-    basename basename;
-  Printf.fprintf make_oc "\t@echo Executing %s:\n" basename;
-  Printf.fprintf make_oc "\techo './%s.asm > %s.$(RESULT)'\n"
-    basename basename;
-  Printf.fprintf make_oc "\t@./%s.asm > %s.$(RESULT) || echo execution failed\n"
-    basename basename;
-  Printf.fprintf make_oc "\t@if $(CMP) %s.$(RESULT) %s.reference; then echo PASSED TEST %s %s; else echo FAILED TEST %s %s '(by diff, cat %s.log)'; fi\n"
-    basename basename
-    basename test.name
-    basename test.name basename;
-  Printf.sprintf "%s.log" basename
-
-let print_tests tests =
+let print_tests (tests, subsets) =
 
   let make_oc = open_out makefile in
+  (*
   Printf.fprintf make_oc "# Use 'Makefile.config' to configure for your host\n";
   Printf.fprintf make_oc "-include Makefile.config\n";
   Printf.fprintf make_oc "RESULT ?= result\n";
@@ -118,45 +107,43 @@ let print_tests tests =
   Printf.fprintf make_oc "ASMDUMP := -S -dcmm -dsel -dcombine -dlive -dspill -dinterf -dprefer -dalloc -dreload -dscheduling -dlinear";
   Printf.fprintf make_oc "\n";
   Printf.fprintf make_oc "all:\n";
+  Printf.fprintf make_oc "\t@echo '---------------------------------------'\n";
+  Printf.fprintf make_oc "\t@echo Testing subset $(SUBSET)...\n";
+  Printf.fprintf make_oc "\t@echo 'Use [make SUBSET=xxx] to test another one'\n";
+  Printf.fprintf make_oc "\t@echo '---------------------------------------'\n";
   Printf.fprintf make_oc "\t%s clean\n" make_rec;
   Printf.fprintf make_oc "\t%s std_exit\n" make_rec;
   Printf.fprintf make_oc "\t%s results\n" make_rec;
   Printf.fprintf make_oc "update-references:\n";
+  Printf.fprintf make_oc "\t$(MAKE) -f %s clean\n" makefile;
   Printf.fprintf make_oc "\t$(MAKE) -f %s RESULT=reference\n" makefile;
   Printf.fprintf make_oc "clean:\n";
   Printf.fprintf make_oc "\trm -f *.asm *.cm? *.o *.result *.log *.s\n";
   Printf.fprintf make_oc "std_exit:\n";
   Printf.fprintf make_oc "\t@echo > std_exit.ml\n";
   Printf.fprintf make_oc "\t$(OCAMLOPT) -S -c std_exit.ml\n";
+  *)
   let targets = ref [] in
   List.iter (fun test ->
     let target = print_test make_oc test in
     targets := target :: !targets;
   ) tests;
   let targets = List.rev !targets in
-  Printf.fprintf make_oc ".PHONY:";
-  List.iter (fun target ->
-    Printf.fprintf make_oc " %s" target
-  ) targets;
-  Printf.fprintf make_oc "\n";
-  Printf.fprintf make_oc "results:";
-  List.iter (fun target ->
-    Printf.fprintf make_oc " %s" target
-  ) targets;
-  Printf.fprintf make_oc "\n";
-  Printf.fprintf make_oc "\t@echo Compiling restuls in testsuite.log...\n";
-  Printf.fprintf make_oc "\t@echo Testsuite results > testsuite.log\n";
-  List.iter (fun target ->
-    Printf.fprintf make_oc "\t@echo '--------------------- %s --------------------' >> testsuite.log\n" target;
-    Printf.fprintf make_oc "\t@cat %s >> testsuite.log\n" target;
-    Printf.fprintf make_oc "\t@echo >> testsuite.log\n";
-  ) targets;
-  Printf.fprintf make_oc "\t@grep TEST testsuite.log\n";
   let ntests = List.length targets in
-  Printf.fprintf make_oc "\t@$(ECHO_NONL) 'Tests OK (on %d tests): '$(NONL)\n" ntests;
-  Printf.fprintf make_oc "\t@grep 'PASSED TEST' testsuite.log | wc -l\n";
-  Printf.fprintf make_oc "\t@$(ECHO_NONL) 'Tests KO (on %d tests): '$(NONL)\n" ntests;
-  Printf.fprintf make_oc "\t@grep 'FAILED TEST' testsuite.log | wc -l\n";
-  close_out make_oc;
+  Printf.fprintf make_oc "ALL_NTESTS=%d\n" ntests;
+  Printf.fprintf make_oc "ALL_LOGS=";
+  List.iter (fun target ->
+    Printf.fprintf make_oc " %s" target
+  ) targets;
+  Printf.fprintf make_oc "\n";
+  List.iter (fun sub ->
+    Printf.fprintf make_oc "%s_LOGS=%s\n" sub.subset_name
+      (String.concat " " (List.rev sub.subset_logs));
+    Printf.fprintf make_oc "%s_NTESTS=%d\n" sub.subset_name
+      (List.length sub.subset_logs);
+  ) subsets;
+  Printf.fprintf make_oc "\n";
+  Printf.fprintf make_oc "# from files/Makefile.trailer\n%s\n" makefile_trailer;
 
+  close_out make_oc;
   ()

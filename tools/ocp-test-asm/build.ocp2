@@ -2,6 +2,7 @@
 begin
   ocaml.files = [
     "testTypes.ml";
+    "testFiles.ml", { file2string = [ "files/Makefile.trailer" ]};
     "testExternals.ml";
     "testPrinter.ml";
     "testTests.ml";
