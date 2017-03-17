@@ -1,25 +1,49 @@
 
-# from files/Makefile.trailer
-
 # Use 'Makefile.config' to configure for your host
+
+# Set KIND to 'byte' to test in bytecode instead of native code
+KIND ?= asm
+# Set FAST to 'true' to use ocamlopt.opt
+FAST ?= false
+# Set SUBSET to a set of tests to avoid running all tests
+SUBSET ?= all
+
 -include Makefile.config
+
 RESULT ?= result
 #CMP could also be 'diff -q'
 CMP ?= cmp
 ECHO_NONL ?= echo -n
 NONL ?=
 
-SUBSET ?= ALL
-KIND ?= asm
+ifeq ($(OCAMLDIR),)
 
-asm_CC := ocamlopt
+else
+OCAMLRUN:=${OCAMLDIR}/byterun/ocamlrun
+endif
+
+ifeq ($(FAST),true)
+MAYBE_OPT:=.opt
+OCAMLRUN:=
+endif
+
+byte_COMPILER:=ocamlc${MAYBE_OPT}
+asm_COMPILER:=ocamlopt${MAYBE_OPT}
+
+# you can set other compilers:
+ifeq ($(OCAMLDIR),)
+$(KIND)_CC ?= $($(KIND)_COMPILER)
+else
+${KIND}_CC ?= ${OCAMLRUN} ${OCAMLDIR}/${${KIND}_COMPILER} -I ${PREFIX}/${KIND}run -I ${PREFIX}/
+stdlib
+endif
+
 asm_COMP := -S -verbose -g -nostdlib -nopervasives
 asm_LINK := -S -verbose -g
 asm_DUMP := -S -dcmm -dsel -dcombine -dlive -dspill -dinterf -dprefer -dalloc -dreload -dscheduling -dlinear
 asm_UNIT :=cmx
 asm_PROG :=asm
 
-byte_CC := ocamlc
 byte_COMP := -verbose -g -nostdlib -nopervasives
 byte_LINK := -verbose -g
 byte_DUMP := -dlambda
@@ -30,6 +54,9 @@ all:
 	@echo '---------------------------------------'
 	@echo Testing subset $(SUBSET)...
 	@echo 'Use [make SUBSET=xxx] to test another one'
+	@echo 'Available subsets: ${SUBSETS}'
+	@echo 'FAST=${FAST} # false/true to use .opt compiler'
+	@echo 'KIND=${KIND} # asm/byte to test bytecode'
 	@echo '---------------------------------------'
 	$(MAKE) -f Makefile.tests --no-print-directory clean
 	$(MAKE) -f Makefile.tests --no-print-directory std_exit
@@ -91,4 +118,4 @@ results: $($(SUBSET)_LOGS)
 
 .ml.log:
 	@echo 'make -f Makefile.tests $*.exec > $*.log'
-	@$(MAKE) -f Makefile.tests --no-print-directory $*.exec > $*.log 2>&1 || echo FAILED TEST $* all externals '(by error status: cat $*.log)'>> $*.log
+	@$(MAKE) -f Makefile.tests --no-print-directory $*.exec > $*.log 2>&1 || echo FAILED TEST $*  `cat $*.name` '(by error status: cat $*.log)'>> $*.log

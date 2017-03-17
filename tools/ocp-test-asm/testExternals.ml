@@ -161,6 +161,8 @@ let prim_externals = [
   "int64_to_int32", "int64 -> int32", ["%int64_to_int32"];
   "int64_of_nativeint", "nativeint -> int64", ["%int64_of_nativeint"];
   "int64_to_nativeint", "int64 -> nativeint", ["%int64_to_nativeint"];
+  "int64_format", "string -> int64 -> string", [ "caml_int64_format" ];
+
 
   "array_length", "'a array -> int", ["%array_length"];
   "array_get", "'a array -> int -> 'a", ["%array_safe_get"];

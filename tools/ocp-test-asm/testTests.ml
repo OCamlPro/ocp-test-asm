@@ -108,6 +108,7 @@ let () = try\n\
   ()
 
 let array () =
+
   new_subset "arrays";
   let bigarray = "
 let bigarray n = [|
@@ -247,8 +248,154 @@ let () =
   ()
 
 
+let gc () =
+  new_subset "gc";
+
+  new_test "minor_gc"
+    "\
+let rec f n =
+  gc_minor ();
+  let r = ref n in
+  if n > 0 then begin
+    f (n-1);
+    output_char stdout (if !r = n then 'a' else 'z')
+  end
+
+let () = f 10
+";
+
+  new_test "minor_gc"
+    "\
+module Array = struct let get = array_unsafe_get end
+let rec f n =
+  let r = [| n |] in
+  gc_minor ();
+  if n > 0 then begin
+    f (n-1);
+  end;
+  output_char stdout (if r.(0) = n then 'a' else 'z')
+
+let () = f 2
+";
+
+  new_test "minor_gc"
+    "\
+module Array = struct let get = array_unsafe_get end
+let () =
+  let r1 = [| 1 |] in
+  gc_minor ();
+  let r2 = [| 2 |] in
+  output_char stdout (if r1.(0) = 1 then '0' else '1');
+  gc_minor ();
+  output_char stdout (if r1.(0) = 1 then '0' else '2');
+  output_char stdout (if r2.(0) = 2 then '0' else '3');
+()
+";
+
+  ()
+
+
+let int64 () =
+  new_subset "int64";
+
+  new_test "pr5513"
+    "
+let a = -9223372036854775808L
+let b = -1L
+let c = int64_div a b
+let () = output_char stdout 'o'
+";
+
+  new_test "pr5513-print"
+    "
+let a = -9223372036854775808L
+let b = -1L
+let c = int64_div a b
+let str = int64_format \"%d\" c
+let () = output stdout str 0 (string_length str)
+";
+  ()
+
+let checkbound () =
+  new_subset "checkbound";
+
+  new_test "string_left_ok"
+    "\
+module String = struct let get = string_get end
+let str = \"toto\" \
+let f s n = output_char stdout (try string_get s n with _ -> '_') \
+let () = f str 0 \
+";
+
+  new_test "string_left_ko"
+    "\
+module String = struct let get = string_get end
+let str = \"toto\" \
+let f s n = output_char stdout (try string_get s n with _ -> '_') \
+let () = f str (-1) \
+";
+
+    new_test "string_right_ok"
+    "\
+module String = struct let get = string_get end
+let str = \"toto\" \
+let f s n = output_char stdout (try string_get s n with _ -> '_') \
+let () = f str 3 \
+";
+
+    new_test "string_right_ko"
+    "\
+let str = \"toto\" \
+let f s n = output_char stdout (try string_get s n with _ -> '_') \
+let () = f str 4 \
+";
+
+
+  new_test "empty_array_left_ko"
+    "\
+let tab = [| |] \
+let f s n = output_char stdout (try array_get s n with _ -> '_') \
+let () = f tab (-1000000) \
+";
+
+  new_test "array_left_ok"
+    "\
+let tab = [| 'a';'b';'c';'d' |] \
+let f s n = output_char stdout (try array_get s n with _ -> '_') \
+let () = f tab 0 \
+";
+
+  new_test "array_left_ko"
+    "\
+let tab = [| 'a';'b';'c';'d' |] \
+let f s n = output_char stdout (try array_get s n with _ -> '_') \
+let () = f tab (-1) \
+";
+
+    new_test "array_right_ok"
+    "\
+let tab = [| 'a';'b';'c';'d' |] \
+let f s n = output_char stdout (try array_get s n with _ -> '_') \
+let () = f tab 3 \
+";
+
+    new_test "array_right_ko"
+    "\
+let tab = [| 'a';'b';'c';'d' |] \
+let f s n = output_char stdout (try array_get s n with _ -> '_') \
+let () = f tab 4 \
+";
+
+
+  ()
+
+
+
 let get_tests () =
   basic ();
   try_with ();
   array ();
+  gc ();
+  checkbound ();
+  int64 ();
   List.rev !tests, List.rev !subsets

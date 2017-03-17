@@ -62,6 +62,15 @@ let print_test make_oc test =
   Printf.fprintf ml_oc "(* %s *)\n" test.name;
   Printf.fprintf ml_oc "type out_channel\n";
   Printf.fprintf ml_oc "type 'a ref\n";
+
+  Printf.fprintf ml_oc "\
+external register_named_value : string -> 'a -> unit \
+                              = \"caml_register_named_value\"\n";
+  Printf.fprintf ml_oc "\
+let () =\
+  register_named_value \"Pervasives.array_bound_error\" \
+    (Invalid_argument \"index out of bounds\")\n";
+
   let externals =
     if test.externals = [] then
       externals_of_source test.source
@@ -93,36 +102,6 @@ let print_test make_oc test =
 let print_tests (tests, subsets) =
 
   let make_oc = open_out makefile in
-  (*
-  Printf.fprintf make_oc "# Use 'Makefile.config' to configure for your host\n";
-  Printf.fprintf make_oc "-include Makefile.config\n";
-  Printf.fprintf make_oc "RESULT ?= result\n";
-  Printf.fprintf make_oc "OCAMLOPT ?= ocamlopt\n";
-  Printf.fprintf make_oc "ASMCOMP ?= -S -verbose -g -nostdlib -nopervasives\n";
-  Printf.fprintf make_oc "ASMLINK ?= -S -verbose -g\n";
-  Printf.fprintf make_oc "#CMP could also be 'diff -q'\n";
-  Printf.fprintf make_oc "CMP ?= cmp\n";
-  Printf.fprintf make_oc "ECHO_NONL ?= echo -n\n";
-  Printf.fprintf make_oc "NONL ?=\n";
-  Printf.fprintf make_oc "ASMDUMP := -S -dcmm -dsel -dcombine -dlive -dspill -dinterf -dprefer -dalloc -dreload -dscheduling -dlinear";
-  Printf.fprintf make_oc "\n";
-  Printf.fprintf make_oc "all:\n";
-  Printf.fprintf make_oc "\t@echo '---------------------------------------'\n";
-  Printf.fprintf make_oc "\t@echo Testing subset $(SUBSET)...\n";
-  Printf.fprintf make_oc "\t@echo 'Use [make SUBSET=xxx] to test another one'\n";
-  Printf.fprintf make_oc "\t@echo '---------------------------------------'\n";
-  Printf.fprintf make_oc "\t%s clean\n" make_rec;
-  Printf.fprintf make_oc "\t%s std_exit\n" make_rec;
-  Printf.fprintf make_oc "\t%s results\n" make_rec;
-  Printf.fprintf make_oc "update-references:\n";
-  Printf.fprintf make_oc "\t$(MAKE) -f %s clean\n" makefile;
-  Printf.fprintf make_oc "\t$(MAKE) -f %s RESULT=reference\n" makefile;
-  Printf.fprintf make_oc "clean:\n";
-  Printf.fprintf make_oc "\trm -f *.asm *.cm? *.o *.result *.log *.s\n";
-  Printf.fprintf make_oc "std_exit:\n";
-  Printf.fprintf make_oc "\t@echo > std_exit.ml\n";
-  Printf.fprintf make_oc "\t$(OCAMLOPT) -S -c std_exit.ml\n";
-  *)
   let targets = ref [] in
   List.iter (fun test ->
     let target = print_test make_oc test in
@@ -130,8 +109,13 @@ let print_tests (tests, subsets) =
   ) tests;
   let targets = List.rev !targets in
   let ntests = List.length targets in
-  Printf.fprintf make_oc "ALL_NTESTS=%d\n" ntests;
-  Printf.fprintf make_oc "ALL_LOGS=";
+  Printf.fprintf make_oc "SUBSETS=all";
+  List.iter (fun sub ->
+    Printf.fprintf make_oc " %s" sub.subset_name
+  ) subsets;
+  Printf.fprintf make_oc "\n";
+  Printf.fprintf make_oc "all_NTESTS=%d\n" ntests;
+  Printf.fprintf make_oc "all_LOGS=";
   List.iter (fun target ->
     Printf.fprintf make_oc " %s" target
   ) targets;
