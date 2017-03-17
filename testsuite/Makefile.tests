@@ -31,9 +31,7 @@ CMP ?= cmp
 ECHO_NONL ?= echo -n
 NONL ?=
 
-ifeq ($(OCAMLDIR),)
-
-else
+ifneq ($(OCAMLDIR),)
 OCAMLRUN:=${OCAMLDIR}/byterun/ocamlrun
 endif
 
@@ -49,8 +47,7 @@ asm_COMPILER:=ocamlopt${MAYBE_OPT}
 ifeq ($(OCAMLDIR),)
 $(KIND)_CC ?= $($(KIND)_COMPILER)
 else
-${KIND}_CC ?= ${OCAMLRUN} ${OCAMLDIR}/${${KIND}_COMPILER} -I ${PREFIX}/${KIND}run -I ${PREFIX}/
-stdlib
+${KIND}_CC ?= ${OCAMLRUN} ${OCAMLDIR}/${${KIND}_COMPILER} -I ${PREFIX}/${KIND}run -I ${PREFIX}/stdlib
 endif
 
 asm_COMP := -S -verbose -g -nostdlib -nopervasives
@@ -67,9 +64,10 @@ byte_PROG:=byte
 
 all:
 	@echo '---------------------------------------'
-	@echo Testing subset $(SUBSET)...
+	@echo Testing SUBSET=$(SUBSET)
 	@echo 'Use [make SUBSET=xxx] to test another one'
 	@echo 'Available subsets: ${SUBSETS}'
+	@echo 'OCAMLDIR=${OCAMLDIR} # sources of compiler if not installed'
 	@echo 'FAST=${FAST} # false/true to use .opt compiler'
 	@echo 'KIND=${KIND} # asm/byte to test bytecode'
 	@echo '---------------------------------------'
