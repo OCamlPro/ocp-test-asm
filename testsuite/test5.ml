@@ -1,6 +1,8 @@
 (* print_array_array_22 *)
 type out_channel
 type 'a ref
+external register_named_value : string -> 'a -> unit = "caml_register_named_value"
+let () =register_named_value "Pervasives.array_bound_error" (Invalid_argument "index out of bounds")
 external array_get : 'a array -> int -> 'a = "%array_safe_get"
 external compare : 'a -> 'a -> int = "%compare"
 external exit : int -> 'a = "caml_sys_exit"

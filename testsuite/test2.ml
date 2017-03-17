@@ -1,6 +1,8 @@
 (* all externals *)
 type out_channel
 type 'a ref
+external register_named_value : string -> 'a -> unit = "caml_register_named_value"
+let () =register_named_value "Pervasives.array_bound_error" (Invalid_argument "index out of bounds")
 external exit : int -> 'a = "caml_sys_exit"
 external ( := ) : 'a ref -> 'a -> unit = "%setfield0"
 external ( ! ) : 'a ref -> 'a = "%field0"

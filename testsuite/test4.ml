@@ -1,6 +1,8 @@
 (* compare_float_array_22 *)
 type out_channel
 type 'a ref
+external register_named_value : string -> 'a -> unit = "caml_register_named_value"
+let () =register_named_value "Pervasives.array_bound_error" (Invalid_argument "index out of bounds")
 external compare : 'a -> 'a -> int = "%compare"
 external exit : int -> 'a = "caml_sys_exit"
 external flush : out_channel -> unit = "caml_ml_flush"

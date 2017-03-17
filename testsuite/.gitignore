@@ -3,3 +3,5 @@
 *.cm?
 *.o
 *.result
+*.log
+*.s
